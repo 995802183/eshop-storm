@@ -34,6 +34,7 @@ public class HotProductCountBolt extends BaseRichBolt {
     private void initTaskid(int taskid){
         zkSession.acquireDistributeLock();
         String path = "/taskid-list";
+        zkSession.createNode(path);
         String taskidList = zkSession.getNodeData(path);
         if(StringUtils.isNotBlank(taskidList)){
             taskidList += ","+taskid;
@@ -67,46 +68,59 @@ public class HotProductCountBolt extends BaseRichBolt {
         @Override
         public void run() {
             List<Map.Entry<Long,Long>> topnProductList = new ArrayList<>();
+            List<Long> productidList = new ArrayList<>();
             while (true){
-                topnProductList.clear();
-                int topn = 3;
+                try{
+                    topnProductList.clear();
+                    productidList.clear();
+                    int topn = 3;
 
-                if(productCountMap.size() == 0){
-                    Utils.sleep(100);
-                    continue;
-                }
+                    if(productCountMap.size() == 0){
+                        Utils.sleep(100);
+                        continue;
+                    }
 
-                for(Map.Entry<Long, Long> productCountEntry : productCountMap.entrySet()){
+                    for(Map.Entry<Long, Long> productCountEntry : productCountMap.entrySet()){
 
-                    if(topnProductList.size() == 0){
-                        topnProductList.add(productCountEntry);
-                    }else{
-                        Boolean bigger = false;
-                        for(Integer i = 0; i<topnProductList.size();i++){
-                            Map.Entry<Long, Long> topnProductEntry = topnProductList.get(i);
-                            if(productCountEntry.getValue() > topnProductEntry.getValue()){
-                                Integer lastIndex = topnProductList.size() < topn? topnProductList.size()-1:topn-2;
-                                for(int j = lastIndex; j >= i; j--){
-                                    topnProductList.set(j+1,topnProductList.get(j));
+                        if(topnProductList.size() == 0){
+                            topnProductList.add(productCountEntry);
+                        }else{
+                            Boolean bigger = false;
+                            for(Integer i = 0; i<topnProductList.size();i++){
+                                Map.Entry<Long, Long> topnProductEntry = topnProductList.get(i);
+                                if(productCountEntry.getValue() > topnProductEntry.getValue()){
+                                    Integer lastIndex = topnProductList.size() < topn? topnProductList.size()-1:topn-2;
+                                    for(int j = lastIndex; j >= i; j--){
+                                        if(j+1 == topnProductList.size()){
+                                            topnProductList.add(null);
+                                        }
+                                        topnProductList.set(j+1,topnProductList.get(j));
+                                    }
+                                    topnProductList.set(i,productCountEntry);
+                                    bigger = true;
+                                    break;
                                 }
-                                topnProductList.set(i,productCountEntry);
-                                bigger = true;
-                                break;
                             }
-                        }
-                        if(!bigger){
-                            if(topnProductList.size() < topn){
-                                topnProductList.add(productCountEntry);
+                            if(!bigger){
+                                if(topnProductList.size() < topn){
+                                    topnProductList.add(productCountEntry);
+                                }
                             }
                         }
                     }
+
+                    for(Map.Entry<Long,Long> entry : topnProductList){
+                        productidList.add(entry.getKey());
+                    }
+
+                    String topnProductListJson = JSONArray.toJSONString(productidList);
+                    zkSession.createNode("/task-hot-product-list-"+taskid);
+                    zkSession.setNodeData("/task-hot-product-list-"+taskid,topnProductListJson);
+
+                    Utils.sleep(5000);
+                }catch (Exception e){
+                    e.printStackTrace();
                 }
-
-
-                String topnProductListJson = JSONArray.toJSONString(topnProductList);
-                zkSession.setNodeData("/task-hot-product-list-"+taskid,topnProductListJson);
-
-                Utils.sleep(5000);
             }
         }
     }

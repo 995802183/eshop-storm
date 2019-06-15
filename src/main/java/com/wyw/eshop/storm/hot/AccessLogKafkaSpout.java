@@ -52,9 +52,9 @@ public class AccessLogKafkaSpout extends BaseRichSpout {
 
     private void startKafkaConsumer(){
         Properties props = new Properties();
+        props.put("bootstrap-servers","192.168.74.133:9092");
         props.put("key-deserializer","org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value-deserializer","org.apache.kafka.common.serialization.StringDeserializer");
-        props.put("bootstrap-servers","192.168.74.133:9092");
         props.put("group.id","eshop-storm-group");
         props.put("zookeeper.session.timeout.ms","40000");
         props.put("zookeeper.sync.time.ms","200");

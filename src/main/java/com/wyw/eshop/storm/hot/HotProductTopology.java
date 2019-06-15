@@ -14,7 +14,7 @@ public class HotProductTopology {
         TopologyBuilder builder = new TopologyBuilder();
 
         builder.setSpout("AccessLogKafkaSpout",new AccessLogKafkaSpout(),1);
-        builder.setBolt("LogParseBolt",new LogParseBolt(),5)
+        builder.setBolt("LogParseBolt",new LogParseBolt(),1)
                 .setNumTasks(1)
                 .shuffleGrouping("AccessLogKafkaSpout");
         builder.setBolt("HotProductCountBolt",new HotProductCountBolt(),1)
@@ -23,7 +23,7 @@ public class HotProductTopology {
 
         Config config = new Config();
         if(args != null && args.length > 0){
-            config.setNumWorkers(3);
+            config.setNumWorkers(1);
             try {
                 StormSubmitter.submitTopology(args[0],config,builder.createTopology());
             }catch (Exception e){

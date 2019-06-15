@@ -58,7 +58,6 @@ public class ZookeeperSession {
         }
     }
 
-
     public void releaseDistributedLock(){
         String path = "/taskid-list-lock";
         try {
@@ -94,6 +93,15 @@ public class ZookeeperSession {
         }
     }
 
+    public void createNode(String path){
+        try {
+            zookeeper.create(path,"".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                    CreateMode.PERSISTENT);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private class ZookeeperWatcher implements Watcher{
 
         @Override
@@ -118,7 +126,6 @@ public class ZookeeperSession {
     public static ZookeeperSession getInstance(){
         return Singleton.getInstance();
     }
-
 
 
     public static void init(){
